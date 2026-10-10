@@ -1,0 +1,33 @@
+name: openchamber
+
+services:
+  openchamber:
+    image: ghcr.io/amirghaghighi/openchamber:2.2.0
+    container_name: openchamber
+    ports:
+      - "3000:3000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - openchamber-config:/home/openchamber/.config/openchamber
+      - opencode-share:/home/openchamber/.local/share/opencode
+      - opencode-state:/home/openchamber/.local/state/opencode
+      - opencode-config:/home/openchamber/.config/opencode
+      - ssh-keys:/home/openchamber/.ssh
+      - ./workspaces:/home/openchamber/workspaces
+    environment:
+      # Docker binds OpenChamber to 0.0.0.0, so UI auth is required.
+      # Set this before starting, for example:
+      #   OPENCHAMBER_UI_PASSWORD="$(openssl rand -base64 24)" docker compose up -d
+      OPENCHAMBER_UI_PASSWORD: ${OPENCHAMBER_UI_PASSWORD:?Set OPENCHAMBER_UI_PASSWORD before exposing OpenChamber through Docker}
+    # OPENCHAMBER_LAN_URL: http://192.168.1.20:3000  # LAN address pairing links offer
+    # OPENCODE_HOST: http://host.docker.internal:4096  # use external OpenCode server
+    # OPENCODE_SKIP_START: true  # with OPENCODE_HOST, skip managed OpenCode
+    restart: unless-stopped
+
+volumes:
+  openchamber-config:
+  opencode-share:
+  opencode-state:
+  opencode-config:
+  ssh-keys:

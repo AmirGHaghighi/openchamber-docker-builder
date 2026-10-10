@@ -1,0 +1,6 @@
+*
+!Dockerfile
+!docker-entrypoint.sh
+!docker-compose.yml
+!.github/workflows/docker-publish.yml
+!README.md
