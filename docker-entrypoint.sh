@@ -48,9 +48,21 @@ if [ ! -f "${SSH_KEY}" ]; then
     || echo "[entrypoint] warning: SSH key generation failed, continuing" >&2
 fi
 
-# Drop privileges: server never runs as root.
+# Drop privileges: the server itself never runs as root.
+# The init steps above briefly run as root (standard gosu pattern) only to
+# fix volume ownership; execution below is always as openchamber.
 if [ "$(id -u)" = "0" ]; then
+  if ! command -v gosu >/dev/null 2>&1; then
+    echo "[entrypoint] error: gosu missing, refusing to run as root" >&2
+    exit 1
+  fi
   exec gosu openchamber openchamber "$@"
+fi
+
+# Final guard: if we are still root here, refuse instead of running the server.
+if [ "$(id -u)" = "0" ]; then
+  echo "[entrypoint] error: refusing to run server as root" >&2
+  exit 1
 fi
 
 exec openchamber "$@"
