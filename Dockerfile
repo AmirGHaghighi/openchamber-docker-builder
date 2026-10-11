@@ -18,6 +18,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       ca-certificates \
       curl \
       git \
+      gosu \
       openssh-client \
       python3 \
     && rm -rf /var/lib/apt/lists/* \
@@ -33,13 +34,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod 755 /usr/local/bin/docker-entrypoint.sh
 
-USER openchamber
+# Stay root: entrypoint fixes volume ownership, then drops to openchamber.
 WORKDIR /home/openchamber
 
-RUN npm install -g "@openchamber/web@${OPENCHAMBER_VERSION}" "@opencode/cli@${OPENCODE_VERSION}" \
-    && npm cache clean --force \
-    && openchamber --version \
-    && opencode --version
+RUN gosu openchamber npm install -g "@openchamber/web@${OPENCHAMBER_VERSION}" "@opencode/cli@${OPENCODE_VERSION}" \
+    && gosu openchamber npm cache clean --force \
+    && gosu openchamber openchamber --version \
+    && gosu openchamber opencode --version
 
 EXPOSE 3000
 
