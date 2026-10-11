@@ -21,6 +21,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       openssh-client \
       python3 \
     && rm -rf /var/lib/apt/lists/* \
+    # Replace the base image's 'node' user (UID/GID 1000) with 'openchamber'
+    # so mounted volumes with 1000:1000 ownership work correctly.
+    && (userdel -r node || true) \
+    && (getent group node && groupdel node || true) \
     && groupadd -g 1000 openchamber \
     && useradd -u 1000 -g 1000 -m -s /bin/bash openchamber \
     && mkdir -p /home/openchamber/.npm-global /home/openchamber/workspaces \
