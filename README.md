@@ -68,6 +68,7 @@ up with plain file copy.
 | `OPENCHAMBER_DATA_DIR` | no | Override data dir (default `~/.config/openchamber`) |
 | `OPENCODE_HOST` + `OPENCODE_SKIP_START=true` | no | Use an external OpenCode server instead of the managed one |
 | `OPENCODE_PORT` | no | Port of external OpenCode server |
+| `GH_TOKEN` | no | GitHub CLI auth (runtime only, never baked into the image). Warning: available to every `gh` call in the container — use a minimally-scoped token. |
 | `UI_PASSWORD` | no | Legacy alias of `OPENCHAMBER_UI_PASSWORD` |
 
 Port/host can be overridden per run: `docker run ... <image> serve --foreground --host 0.0.0.0 --port 8080`.
@@ -86,7 +87,9 @@ Port/host can be overridden per run: `docker run ... <image> serve --foreground 
 ## Versions
 
 Pinned in `versions.env` (single source of truth): `OPENCHAMBER_VERSION`,
-`OPENCODE_VERSION`, `NODE_IMAGE_DIGEST`, `BUILDER_VERSION`.
+`OPENCODE_VERSION`, `GH_VERSION`, `NODE_IMAGE_DIGEST`, `BUILDER_VERSION`. The
+image is amd64-only; the GitHub CLI apt source is pinned to `arch=amd64`. No
+arm64 build until a later change restores it.
 
 - Upstream bump: edit the upstream pin(s) only.
 - Builder/infra change: bump `BUILDER_VERSION` only.
@@ -99,6 +102,7 @@ docker build \
   --build-arg NODE_IMAGE_DIGEST="$NODE_IMAGE_DIGEST" \
   --build-arg OPENCHAMBER_VERSION="$OPENCHAMBER_VERSION" \
   --build-arg OPENCODE_VERSION="$OPENCODE_VERSION" \
+  --build-arg GH_VERSION="$GH_VERSION" \
   --build-arg BUILDER_VERSION="$BUILDER_VERSION" \
   -t openchamber:dev .
 ```
@@ -111,6 +115,7 @@ provenance attestation.
 
 Infra-only fixes (Dockerfile, entrypoint, workflows) get a no-push
 validation build via `docker-validate`. A weekly `upstream-check` workflow
-queries npm for new `@openchamber/web` / `@opencode/cli` releases and opens
+queries npm for new `@openchamber/web` / `@opencode/cli` releases and GitHub
+for new `cli/cli` releases, and opens
 a bump PR only when a pin actually changed; merging it publishes. Quiet
 weeks produce no PR.

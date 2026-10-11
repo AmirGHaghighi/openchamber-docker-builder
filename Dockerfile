@@ -7,11 +7,13 @@ FROM node:24-bookworm-slim@${NODE_IMAGE_DIGEST}
 
 ARG OPENCHAMBER_VERSION
 ARG OPENCODE_VERSION
+ARG GH_VERSION
 ARG BUILDER_VERSION
 
 # Fail fast: versions.env is the single source of truth, passed as build args.
 RUN test -n "${OPENCHAMBER_VERSION:-}" || (echo "error: OPENCHAMBER_VERSION build arg is empty (source versions.env)" >&2; exit 1); \
     test -n "${OPENCODE_VERSION:-}" || (echo "error: OPENCODE_VERSION build arg is empty (source versions.env)" >&2; exit 1); \
+    test -n "${GH_VERSION:-}" || (echo "error: GH_VERSION build arg is empty (source versions.env)" >&2; exit 1); \
     test -n "${BUILDER_VERSION:-}" || (echo "error: BUILDER_VERSION build arg is empty (source versions.env)" >&2; exit 1)
 
 LABEL org.opencontainers.image.version=${OPENCHAMBER_VERSION} \
@@ -33,6 +35,14 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
       openssh-client \
       python3 \
     && rm -rf /var/cache/apt/archives/* \
+    # GitHub CLI apt repo (amd64-only ceiling; GitHub publishes arm64 too).
+    # ponytail: TOFU keyring download; pin keyring hash when supply-chain requires it.
+    && curl -fsSL -o /usr/share/keyrings/githubcli-archive-keyring.gpg https://cli.github.com/packages/githubcli-archive-keyring.gpg \
+    && chmod 644 /usr/share/keyrings/githubcli-archive-keyring.gpg \
+    && echo "deb [arch=amd64 signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
+      > /etc/apt/sources.list.d/github-cli.list \
+    && apt-get update && apt-get install -y --no-install-recommends "gh=${GH_VERSION}*" \
+    && rm -rf /var/cache/apt/archives/* \
     # Replace the base image's 'node' user (UID/GID 1000) with 'openchamber'
     # so mounted volumes with 1000:1000 ownership work correctly.
     && (userdel -r node || true) \
@@ -51,7 +61,8 @@ WORKDIR /home/openchamber
 RUN --mount=type=cache,target=/home/openchamber/.npm,uid=1000,gid=1000 \
     gosu openchamber npm install -g "@openchamber/web@${OPENCHAMBER_VERSION}" "@opencode/cli@${OPENCODE_VERSION}" \
     && gosu openchamber openchamber --version \
-    && gosu openchamber opencode --version
+    && gosu openchamber opencode --version \
+    && gh --version
 
 EXPOSE 3000
 

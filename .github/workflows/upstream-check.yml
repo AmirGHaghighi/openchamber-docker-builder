@@ -1,6 +1,7 @@
 name: upstream-check
 
-# Checks npm for new @openchamber/web and @opencode/cli releases.
+# Checks npm for new @openchamber/web and @opencode/cli releases,
+# plus GitHub for new cli/cli (gh) releases.
 # Opens a PR only when an upstream pin actually changed; merging it
 # changes versions.env, which fires docker-publish.
 # Never publishes directly.
@@ -28,8 +29,10 @@ jobs:
           }
           CURRENT_OC="$(current OPENCHAMBER_VERSION)"
           CURRENT_CODE="$(current OPENCODE_VERSION)"
+          CURRENT_GH="$(current GH_VERSION)"
           LATEST_OC="$(curl -fsSL https://registry.npmjs.org/@openchamber%2Fweb/latest | jq -r .version)"
           LATEST_CODE="$(curl -fsSL https://registry.npmjs.org/@opencode%2Fcli/latest | jq -r .version)"
+          LATEST_GH="$(curl -fsSL https://api.github.com/repos/cli/cli/releases/latest | jq -r .tag_name | sed 's/^v//')"
           if [ -z "$LATEST_OC" ] || [ "$LATEST_OC" = "null" ]; then
             echo "error: could not resolve latest @openchamber/web version" >&2
             exit 1
@@ -38,8 +41,13 @@ jobs:
             echo "error: could not resolve latest @opencode/cli version" >&2
             exit 1
           fi
+          if [ -z "$LATEST_GH" ] || [ "$LATEST_GH" = "null" ]; then
+            echo "error: could not resolve latest cli/cli version" >&2
+            exit 1
+          fi
           echo "openchamber: current=$CURRENT_OC latest=$LATEST_OC"
           echo "opencode: current=$CURRENT_CODE latest=$LATEST_CODE"
+          echo "gh: current=$CURRENT_GH latest=$LATEST_GH"
           CHANGED=false
           if [ "$LATEST_OC" != "$CURRENT_OC" ]; then
             sed -i -E "s/^(OPENCHAMBER_VERSION[[:space:]]*=[[:space:]]*).*/\1${LATEST_OC}/" versions.env
@@ -49,8 +57,13 @@ jobs:
             sed -i -E "s/^(OPENCODE_VERSION[[:space:]]*=[[:space:]]*).*/\1${LATEST_CODE}/" versions.env
             CHANGED=true
           fi
+          if [ "$LATEST_GH" != "$CURRENT_GH" ]; then
+            sed -i -E "s/^(GH_VERSION[[:space:]]*=[[:space:]]*).*/\1${LATEST_GH}/" versions.env
+            CHANGED=true
+          fi
           echo "LATEST_OC=${LATEST_OC}" >> "$GITHUB_ENV"
           echo "LATEST_CODE=${LATEST_CODE}" >> "$GITHUB_ENV"
+          echo "LATEST_GH=${LATEST_GH}" >> "$GITHUB_ENV"
           echo "UPSTREAM_CHANGED=${CHANGED}" >> "$GITHUB_ENV"
           if [ "$CHANGED" = true ]; then
             echo "Upstream changed — versions.env updated."
@@ -62,7 +75,7 @@ jobs:
         if: env.UPSTREAM_CHANGED == 'true'
         uses: peter-evans/create-pull-request@v7
         with:
-          branch: upstream-${{ env.LATEST_OC }}-${{ env.LATEST_CODE }}
-          title: "chore: bump upstream (openchamber ${{ env.LATEST_OC }}, opencode ${{ env.LATEST_CODE }})"
-          body: "New upstream release(s) detected on npm. Merge to publish; close to skip."
-          commit-message: "chore: bump upstream (openchamber ${{ env.LATEST_OC }}, opencode ${{ env.LATEST_CODE }})"
+          branch: upstream-${{ env.LATEST_OC }}-${{ env.LATEST_CODE }}-gh${{ env.LATEST_GH }}
+          title: "chore: bump upstream (openchamber ${{ env.LATEST_OC }}, opencode ${{ env.LATEST_CODE }}, gh ${{ env.LATEST_GH }})"
+          body: "New upstream release(s) detected on npm / GitHub. Merge to publish; close to skip."
+          commit-message: "chore: bump upstream (openchamber ${{ env.LATEST_OC }}, opencode ${{ env.LATEST_CODE }}, gh ${{ env.LATEST_GH }})"
