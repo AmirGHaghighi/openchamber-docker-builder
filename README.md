@@ -28,6 +28,35 @@ The container fails fast with a clear error when `OPENCHAMBER_UI_PASSWORD` is
 missing, since Docker binds `0.0.0.0` and unauthenticated LAN exposure is
 blocked upstream.
 
+## Deploy with compose
+
+On the server:
+
+```bash
+git clone https://github.com/AmirGHaghighi/openchamber-docker-builder.git
+cd openchamber-docker-builder
+cp .env.example .env   # set OPENCHAMBER_UI_PASSWORD (and IMAGE_TAG if pinned)
+mkdir -p workspaces
+docker compose up -d
+```
+
+Check health, then follow logs:
+
+```bash
+curl -fsS http://localhost:3000/health
+docker compose logs -f
+```
+
+Update to a newer image:
+
+```bash
+docker compose pull && docker compose up -d
+```
+
+Back up everything except `opencode-state` (see Volumes table below). Named
+volumes live under Docker's volume dir; the bind-mounted `./workspaces` backs
+up with plain file copy.
+
 ## Environment
 
 | Variable | Required | Purpose |
