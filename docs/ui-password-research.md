@@ -110,3 +110,89 @@ Sources:
 - `OPENCHAMBER_UI_PASSWORD` (or repo-local `UI_PASSWORD` alias mapped in `docker-entrypoint.sh`) is the only password input for the containerized `serve`; compose marks it required (`${OPENCHAMBER_UI_PASSWORD:?…}`).
 - Rotation = set the new value in the env file / host env and recreate the container. Old browser cookies survive rotation unless someone also hits "Sign out everywhere" (`POST /api/auth/reset`) before/after — consider documenting a reset step for rotations. Passkeys will be wiped server-side on the change; users re-enroll at `Settings → OpenChamber → Passkeys`.
 - `OPENCODE_JWT_SECRET` deserves a stable value in long-lived Docker deployments (else each fresh data dir mints a new secret and pre-existing cookies die on volume loss); note it disables global sign-out while set.
+
+## Full OpenChamber env reference (upstream `main`, 2026-10-11)
+
+Documented at https://docs.openchamber.dev/environment/ unless marked `(undocumented)`.
+Raw `OPENCHAMBER_*` scan also surfaced internals, `__`-suffixed test markers,
+and dev-only helpers — those are excluded below. Code refs are
+`packages/web/server/…` / `packages/web/bin/…` unless noted.
+
+### Server bind + auth
+
+- `OPENCHAMBER_HOST` — bind address. `--host` wins when both given.
+  (`server/index.js`, `bin/lib/cli-network.js` `resolveConfiguredBindHost`)
+- `OPENCHAMBER_PORT` — dev/vite/test scaffolding only (`vite.config.ts`,
+  `scripts/dev-server-watch.mjs`). Production server never reads it for
+  listening; port comes from `--port`/`-p` or daemon instance state.
+- `OPENCHAMBER_LAN_URL` — address pairing links/QR offer. Display only.
+- `OPENCHAMBER_UI_PASSWORD` — browser UI password. Startup-only.
+- `OPENCODE_UI_PASSWORD` (undocumented) — env fallback for the above
+  (`server/lib/opencode/cli-options.js`).
+- `OPENCHAMBER_UI_SESSION_TTL_HOURS` — default 12.
+- `OPENCHAMBER_UI_TRUSTED_SESSION_TTL_DAYS` — default 7.
+- `OPENCHAMBER_API_ONLY` — headless mode (`true`/`1`).
+- `OPENCHAMBER_FRAME_ANCESTORS` — allowed framing origins.
+- `OPENCHAMBER_RATE_LIMIT_MAX_ATTEMPTS` (undocumented) — default 10 per 5 min.
+- `OPENCHAMBER_RATE_LIMIT_NO_IP_MAX_ATTEMPTS` (undocumented) — default 3.
+- `OPENCHAMBER_API_PREFIX` / `OPENCODE_API_PREFIX` (undocumented) — API prefix.
+
+### Data dirs
+
+- `OPENCHAMBER_DATA_DIR` — default `~/.config/openchamber`.
+- `OPENCHAMBER_CHATS_DIR` — default `<data-dir>/chats`.
+
+### OpenCode managed server
+
+- `OPENCODE_HOST` — external OpenCode origin (explicit port, no path).
+- `OPENCODE_PORT` — managed port request, or external port with skip-start.
+- `OPENCODE_SKIP_START` / `OPENCHAMBER_SKIP_OPENCODE_START` — skip managed start.
+- `OPENCHAMBER_OPENCODE_HOSTNAME` — managed bind hostname, default `127.0.0.1`.
+- `OPENCODE_JWT_SECRET` — UI token signing secret. Stable value recommended
+  for persistent deployments; while set, global sign-out is unavailable.
+- `OPENCODE_BINARY` — opencode executable path.
+- `OPENCODE_CONFIG` / `OPENCODE_CONFIG_DIR` / `OPENCODE_DATA_DIR` — config paths.
+- `OPENCODE_WSL_DISTRO` / `OPENCHAMBER_OPENCODE_WSL_DISTRO` — WSL distro.
+- `OPENCHAMBER_OPENCODE_PORT` (undocumented) — managed OpenCode port override.
+- `OPENCHAMBER_OPENCODE_HEALTH_*` (undocumented) — healthcheck tuning
+  (`INTERVAL_MS`, `TIMEOUT_MS`, `CACHE_MS`, `CONSECUTIVE_FAILURES`).
+
+### Terminal / Git
+
+- `OPENCHAMBER_TERMINAL_SHELL`, `OPENCHAMBER_GIT_BINARY`, `GIT_BINARY`,
+  `OPENCHAMBER_GIT_READ_CACHE_TTL_MS`.
+
+### Voice / tunnels / relay
+
+- `OPENAI_API_KEY`, `OPENCHAMBER_ALLOW_REMOTE_OPENAI_COMPAT_URLS`, `NGROK_AUTHTOKEN`.
+- `OPENCHAMBER_RELAY_URL` (undocumented in env page; enterprise docs cover it).
+- `OPENCHAMBER_RELAY_HOST` (undocumented) — `on`/`off` passive relay hosting.
+- `OPENCHAMBER_TRY_CF_TUNNEL` (legacy), `OPENCHAMBER_TUNNEL_PROVIDER`,
+  `OPENCHAMBER_TUNNEL_MODE`, `OPENCHAMBER_TUNNEL_CONFIG`,
+  `OPENCHAMBER_TUNNEL_TOKEN`, `OPENCHAMBER_TUNNEL_HOSTNAME` (undocumented).
+
+### Enterprise mode
+
+- `OPENCHAMBER_ENTERPRISE_MODE=1`, `OPENCHAMBER_ALLOW_NETWORK_ACCESS=1`,
+  `OPENCHAMBER_ALLOWED_EXTENSIONS` (comma-separated),
+  `OPENCHAMBER_ALLOW_LOCAL_EXTENSIONS=1`, `OPENCHAMBER_JEV_URL`,
+  `OPENCHAMBER_JEV_MODEL`, `OPENCHAMBER_JEV_API_KEY`, `OPENCHAMBER_RELAY_URL`.
+  (`server/lib/enterprise-mode.js`; https://docs.openchamber.dev/security/)
+
+### App behavior / runtime
+
+- `OPENCHAMBER_COMPRESS_API` / `OPENCHAMBER_SKIP_API_COMPRESSION`.
+- `OPENCHAMBER_VERBOSE_REQUEST_LOGS`.
+- `OPENCHAMBER_UPDATE_API_URL`, `OPENCHAMBER_PACKAGE_MANAGER`.
+- `OPENCHAMBER_ALLOW_UNAUTHENTICATED_LAN` (undocumented) — bypasses
+  unauthenticated-LAN refusal (`server/lib/security/bind-host.js`).
+- `OPENCHAMBER_PUBLIC_ORIGIN`, `OPENCHAMBER_SERVER_URL` (undocumented).
+- `OPENCHAMBER_VAPID_SUBJECT` (undocumented) — push notifications.
+- `OPENCHAMBER_FS_EXEC_TIMEOUT_MS`, `OPENCHAMBER_FS_UPLOAD_MAX_BYTES`,
+  `OPENCHAMBER_GUEST_UPLOAD_MAX_BYTES` (undocumented).
+- `OPENCHAMBER_EVENT_DELTA_COALESCE_MS` (undocumented).
+- `OPENCHAMBER_MEMORY_ENABLE` (undocumented).
+- `OPENCHAMBER_RUNTIME`, `OPENCHAMBER_DESKTOP_NOTIFY`,
+  `OPENCHAMBER_ELECTRON_DEV`, `OPENCHAMBER_BUNDLED_OPENCODE_CLI_DIR`,
+  `OPENCHAMBER_NODE_BINARY`, `OPENCHAMBER_BUN_BINARY` (runtime/plumbing).
+- `HTTP_PROXY`, `HTTPS_PROXY`, `NO_PROXY` (lowercase work too).
