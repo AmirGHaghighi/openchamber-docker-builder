@@ -5,7 +5,9 @@ services:
     image: ghcr.io/amirghaghighi/openchamber:${IMAGE_TAG:-latest}
     container_name: openchamber
     ports:
-      - "3000:3000"
+      # Both sides follow OPENCHAMBER_PORT (defaults 3000). For network_mode:
+      # host, ports is ignored — the container port comes from the entrypoint.
+      - "${OPENCHAMBER_PORT:-3000}:${OPENCHAMBER_PORT:-3000}"
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
@@ -22,6 +24,9 @@ services:
       OPENCHAMBER_UI_PASSWORD: ${OPENCHAMBER_UI_PASSWORD:?Set OPENCHAMBER_UI_PASSWORD before exposing OpenChamber through Docker}
       # Optional: LAN address pairing links offer (empty = upstream default).
       OPENCHAMBER_LAN_URL: ${OPENCHAMBER_LAN_URL:-}
+      # Entrypoint env (repo-local): translated to --port by docker-entrypoint.sh.
+      # Empty = image CMD default (3000).
+      OPENCHAMBER_PORT: ${OPENCHAMBER_PORT:-}
     # OPENCODE_HOST: http://host.docker.internal:4096  # use external OpenCode server
     # OPENCODE_SKIP_START: true  # with OPENCODE_HOST, skip managed OpenCode
     restart: unless-stopped

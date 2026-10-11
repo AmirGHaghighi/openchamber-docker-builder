@@ -17,6 +17,31 @@ case "${1:-serve}" in
       echo "[entrypoint] Example: OPENCHAMBER_UI_PASSWORD=\"\$(openssl rand -base64 24)\" docker compose up -d" >&2
       exit 1
     fi
+    # Entrypoint env (repo-local): upstream has no port env, so translate
+    # OPENCHAMBER_PORT to --port here. Drop when upstream documents it.
+    has_port_flag=false
+    for arg in "$@"; do
+      case "$arg" in
+        --port|--port=*|-p) has_port_flag=true; break ;;
+      esac
+    done
+    if [ "$has_port_flag" = true ]; then
+      if [ -n "${OPENCHAMBER_PORT:-}" ]; then
+        echo "[entrypoint] warning: --port flag wins, ignoring OPENCHAMBER_PORT" >&2
+      fi
+    elif [ -n "${OPENCHAMBER_PORT:-}" ]; then
+      case "$OPENCHAMBER_PORT" in
+        ''|*[!0-9]*)
+          echo "[entrypoint] error: OPENCHAMBER_PORT must be 1-65535, got '${OPENCHAMBER_PORT}'." >&2
+          exit 1
+          ;;
+      esac
+      if [ "$OPENCHAMBER_PORT" -lt 1 ] || [ "$OPENCHAMBER_PORT" -gt 65535 ]; then
+        echo "[entrypoint] error: OPENCHAMBER_PORT must be 1-65535, got '${OPENCHAMBER_PORT}'." >&2
+        exit 1
+      fi
+      set -- "$@" --port "$OPENCHAMBER_PORT"
+    fi
     ;;
 esac
 

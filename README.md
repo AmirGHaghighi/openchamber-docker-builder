@@ -62,6 +62,8 @@ up with plain file copy.
 | Variable | Required | Purpose |
 |---|---|---|
 | `OPENCHAMBER_UI_PASSWORD` | yes (server) | Browser UI password |
+| `OPENCHAMBER_PORT` | no | Entrypoint env (repo-local): translated to `--port` by `docker-entrypoint.sh`. Explicit `--port` flag wins. Upstream has no port env. |
+| `OPENCHAMBER_HOST` | no | Upstream env: bind address (bare IP). Explicit `--host` wins. |
 | `OPENCHAMBER_LAN_URL` | LAN pairing | Address pairing links offer, e.g. `http://192.168.1.20:3000` |
 | `OPENCHAMBER_DATA_DIR` | no | Override data dir (default `~/.config/openchamber`) |
 | `OPENCODE_HOST` + `OPENCODE_SKIP_START=true` | no | Use an external OpenCode server instead of the managed one |

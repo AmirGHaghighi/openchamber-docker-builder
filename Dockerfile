@@ -54,7 +54,7 @@ RUN gosu openchamber npm install -g "@openchamber/web@${OPENCHAMBER_VERSION}" "@
 EXPOSE 3000
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
-  CMD curl -fsS http://127.0.0.1:3000/health || exit 1
+  CMD curl -fsS http://127.0.0.1:${OPENCHAMBER_PORT:-3000}/health || exit 1
 
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 CMD ["serve", "--foreground", "--host", "0.0.0.0", "--port", "3000"]
