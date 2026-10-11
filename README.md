@@ -41,6 +41,17 @@ blocked upstream.
 
 Port/host can be overridden per run: `docker run ... <image> serve --foreground --host 0.0.0.0 --port 8080`.
 
+## Volumes
+
+| Volume | Mount | Stored | Safe to delete? |
+|---|---|---|---|
+| `openchamber-config` | `/home/openchamber/.config/openchamber` | Projects, sessions index, device tokens, UI settings | No — lose projects, sessions, pairings |
+| `opencode-share` | `/home/openchamber/.local/share/opencode` | Provider auth, session history, message cache | No — lose auth + agent history |
+| `opencode-state` | `/home/openchamber/.local/state/opencode` | Logs, temp files, crash recovery | Yes — debug logs only |
+| `opencode-config` | `/home/openchamber/.config/opencode` | `opencode.json`, rules, permissions | No — resets agent config |
+| `ssh-keys` | `/home/openchamber/.ssh` | ed25519 keypair, known_hosts | Key rotates — re-authorize in git hosts |
+| `./workspaces` | `/home/openchamber/workspaces` | User code — the only volume holding user value | Back this one up |
+
 ## Versions
 
 Pinned via build args (defaults: `OPENCHAMBER_VERSION=2.2.0`, `OPENCODE_VERSION=2.0.25`):
