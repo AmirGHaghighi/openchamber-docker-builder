@@ -43,14 +43,14 @@ Port/host can be overridden per run: `docker run ... <image> serve --foreground 
 
 ## Volumes
 
-| Volume | Mount | Stored | Safe to delete? |
-|---|---|---|---|
-| `openchamber-config` | `/home/openchamber/.config/openchamber` | Projects, sessions index, device tokens, UI settings | No — lose projects, sessions, pairings |
-| `opencode-share` | `/home/openchamber/.local/share/opencode` | Provider auth, session history, message cache | No — lose auth + agent history |
-| `opencode-state` | `/home/openchamber/.local/state/opencode` | Logs, temp files, crash recovery | Yes — debug logs only |
-| `opencode-config` | `/home/openchamber/.config/opencode` | `opencode.json`, rules, permissions | No — resets agent config |
-| `ssh-keys` | `/home/openchamber/.ssh` | ed25519 keypair, known_hosts | Key rotates — re-authorize in git hosts |
-| `./workspaces` | `/home/openchamber/workspaces` | User code — the only volume holding user value | Back this one up |
+| Volume | Mount | Stored | Safe to delete? | Why back up? |
+|---|---|---|---|---|
+| `openchamber-config` | `/home/openchamber/.config/openchamber` | Projects, sessions index, device tokens, UI settings | No — lose projects, sessions, pairings | Yes — only copy of session/project state |
+| `opencode-share` | `/home/openchamber/.local/share/opencode` | Provider auth, session history, message cache | No — lose auth + agent history | Yes — avoids re-login, keeps history |
+| `opencode-state` | `/home/openchamber/.local/state/opencode` | Logs, temp files, crash recovery | Yes — debug logs only | No — ephemeral |
+| `opencode-config` | `/home/openchamber/.config/opencode` | `opencode.json`, rules, permissions | No — resets agent config | Yes — your tuned agent setup |
+| `ssh-keys` | `/home/openchamber/.ssh` | ed25519 keypair, known_hosts | Key rotates — re-authorize in git hosts | Yes — avoids re-authorizing key |
+| `./workspaces` | `/home/openchamber/workspaces` | User code — the only volume holding user value | Must keep | Yes — irreplaceable user work |
 
 ## Versions
 
