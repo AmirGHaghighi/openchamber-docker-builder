@@ -108,5 +108,7 @@ releases, so pin the 4-part tag. All tags cosign-signed with SBOM +
 provenance attestation.
 
 Infra-only fixes (Dockerfile, entrypoint, workflows) get a no-push
-validation build via `docker-validate`. A weekly `weekly-respin` workflow
-opens a builder-rev bump PR to refresh the apt layer; merging it publishes.
+validation build via `docker-validate`. A weekly `upstream-check` workflow
+queries npm for new `@openchamber/web` / `@opencode/cli` releases and opens
+a bump PR only when a pin actually changed; merging it publishes. Quiet
+weeks produce no PR.

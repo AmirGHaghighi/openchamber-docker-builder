@@ -9,12 +9,14 @@ on:
       - Dockerfile
       - docker-entrypoint.sh
       - .github/workflows/docker-validate.yml
+      - .github/workflows/upstream-check.yml
   pull_request:
     paths:
       - Dockerfile
       - docker-entrypoint.sh
       - versions.env
       - .github/workflows/docker-validate.yml
+      - .github/workflows/upstream-check.yml
 
 jobs:
   validate:
