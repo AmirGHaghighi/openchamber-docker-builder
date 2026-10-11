@@ -23,8 +23,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          # Value-diff gate compares against the pre-push commit.
-          fetch-depth: 0
+          # Value-diff gate fetches the pre-push commit on demand below.
+          fetch-depth: 1
 
       - name: Resolve versions
         run: |
@@ -46,6 +46,7 @@ jobs:
           if [ "${{ github.event_name }}" = "push" ]; then
             # Compare against the pre-push SHA: multi-commit pushes may carry
             # the versions.env change in an earlier commit than HEAD~1.
+            git fetch --no-tags --depth 1 origin "${{ github.event.before }}" 2>/dev/null || true
             git show "${{ github.event.before }}:versions.env" > /tmp/versions.old 2>/dev/null || true
             if [ -s /tmp/versions.old ]; then
               parse /tmp/versions.old > /tmp/versions.old.clean
@@ -60,8 +61,6 @@ jobs:
         if: env.SKIP_PUBLISH == 'true'
         run: echo "No versions.env value change; nothing to publish."
 
-      - uses: docker/setup-qemu-action@v3
-        if: env.SKIP_PUBLISH != 'true'
       - uses: docker/setup-buildx-action@v3
         if: env.SKIP_PUBLISH != 'true'
       - uses: docker/login-action@v3
@@ -86,13 +85,16 @@ jobs:
 
       - id: build
         if: env.SKIP_PUBLISH != 'true'
+        # ponytail: amd64-only ceiling; restore arm64 via setup-qemu-action + platforms linux/amd64,linux/arm64.
         uses: docker/build-push-action@v6
         with:
           context: .
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
           build-args: |
             NODE_IMAGE_DIGEST=${{ env.NODE_IMAGE_DIGEST }}
             OPENCHAMBER_VERSION=${{ env.OPENCHAMBER_VERSION }}

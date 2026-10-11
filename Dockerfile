@@ -23,14 +23,16 @@ ENV NODE_ENV=production \
     NPM_CONFIG_PREFIX=/home/openchamber/.npm-global
 ENV PATH=/home/openchamber/.npm-global/bin:${PATH}
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update && apt-get install -y --no-install-recommends \
       ca-certificates \
       curl \
       git \
       gosu \
       openssh-client \
       python3 \
-    && rm -rf /var/lib/apt/lists/* \
+    && rm -rf /var/cache/apt/archives/* \
     # Replace the base image's 'node' user (UID/GID 1000) with 'openchamber'
     # so mounted volumes with 1000:1000 ownership work correctly.
     && (userdel -r node || true) \
@@ -46,8 +48,8 @@ RUN chmod 755 /usr/local/bin/docker-entrypoint.sh
 # Stay root: entrypoint fixes volume ownership, then drops to openchamber.
 WORKDIR /home/openchamber
 
-RUN gosu openchamber npm install -g "@openchamber/web@${OPENCHAMBER_VERSION}" "@opencode/cli@${OPENCODE_VERSION}" \
-    && gosu openchamber npm cache clean --force \
+RUN --mount=type=cache,target=/home/openchamber/.npm,uid=1000,gid=1000 \
+    gosu openchamber npm install -g "@openchamber/web@${OPENCHAMBER_VERSION}" "@opencode/cli@${OPENCODE_VERSION}" \
     && gosu openchamber openchamber --version \
     && gosu openchamber opencode --version
 
