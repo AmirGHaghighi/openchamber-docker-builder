@@ -4,19 +4,10 @@ on:
   push:
     branches: [main]
     paths:
-      - Dockerfile
-      - docker-entrypoint.sh
-      - .github/workflows/docker-publish.yml
+      - versions.env
+  # Manual escape hatch: publishes whatever versions.env holds,
+  # bypassing the value-diff gate below.
   workflow_dispatch:
-    inputs:
-      openchamber_version:
-        description: OpenChamber version (@openchamber/web)
-        default: "2.2.0"
-      opencode_version:
-        description: OpenCode version (@opencode/cli)
-        default: "2.0.25"
-  schedule:
-    - cron: "0 3 * * 1" # weekly rebuild on fresh base, Mondays 03:00 UTC
 
 env:
   REGISTRY: ghcr.io
@@ -31,30 +22,70 @@ jobs:
       id-token: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Value-diff gate compares against the pre-push commit.
+          fetch-depth: 0
 
       - name: Resolve versions
         run: |
-          echo "OPENCHAMBER_VERSION=${{ inputs.openchamber_version || '2.2.0' }}" >> "$GITHUB_ENV"
-          echo "OPENCODE_VERSION=${{ inputs.opencode_version || '2.0.25' }}" >> "$GITHUB_ENV"
+          set -eu
+          parse() {
+            # Parse KEY=VALUE, ignore comments/blank lines/whitespace.
+            sed -e 's/#.*//' -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e '/^$/d' "$1" \
+              | sed -e 's/[[:space:]]*=[[:space:]]*/=/'
+          }
+          parse versions.env > /tmp/versions.new
+          for key in OPENCHAMBER_VERSION OPENCODE_VERSION NODE_IMAGE_DIGEST BUILDER_VERSION; do
+            value="$(grep -E "^${key}=" /tmp/versions.new | cut -d= -f2- || true)"
+            if [ -z "$value" ]; then
+              echo "error: $key missing or empty in versions.env" >&2
+              exit 1
+            fi
+            echo "$key=$value" >> "$GITHUB_ENV"
+          done
+          if [ "${{ github.event_name }}" = "push" ]; then
+            # Compare against the pre-push SHA: multi-commit pushes may carry
+            # the versions.env change in an earlier commit than HEAD~1.
+            git show "${{ github.event.before }}:versions.env" > /tmp/versions.old 2>/dev/null || true
+            if [ -s /tmp/versions.old ]; then
+              parse /tmp/versions.old > /tmp/versions.old.clean
+              if cmp -s /tmp/versions.new /tmp/versions.old.clean; then
+                echo "SKIP_PUBLISH=true" >> "$GITHUB_ENV"
+                echo "versions.env values unchanged (comment/whitespace-only edit) — skipping publish."
+              fi
+            fi
+          fi
+
+      - name: Skip (no value change)
+        if: env.SKIP_PUBLISH == 'true'
+        run: echo "No versions.env value change; nothing to publish."
 
       - uses: docker/setup-qemu-action@v3
+        if: env.SKIP_PUBLISH != 'true'
       - uses: docker/setup-buildx-action@v3
+        if: env.SKIP_PUBLISH != 'true'
       - uses: docker/login-action@v3
+        if: env.SKIP_PUBLISH != 'true'
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - id: meta
+        if: env.SKIP_PUBLISH != 'true'
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          # Only the 4-part tag is immutable. The rest float and get
+          # overwritten on any later release — pin the 4-part tag.
           tags: |
             type=raw,value=latest
             type=raw,value=${{ env.OPENCHAMBER_VERSION }}
-            type=sha,prefix=${{ env.OPENCHAMBER_VERSION }}-,format=short
+            type=raw,value=${{ env.OPENCHAMBER_VERSION }}-${{ env.OPENCODE_VERSION }}
+            type=raw,value=${{ env.OPENCHAMBER_VERSION }}-${{ env.OPENCODE_VERSION }}-${{ env.BUILDER_VERSION }}
 
       - id: build
+        if: env.SKIP_PUBLISH != 'true'
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -63,12 +94,16 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
+            NODE_IMAGE_DIGEST=${{ env.NODE_IMAGE_DIGEST }}
             OPENCHAMBER_VERSION=${{ env.OPENCHAMBER_VERSION }}
             OPENCODE_VERSION=${{ env.OPENCODE_VERSION }}
+            BUILDER_VERSION=${{ env.BUILDER_VERSION }}
           sbom: true
           provenance: mode=max
 
       - uses: sigstore/cosign-installer@v3
+        if: env.SKIP_PUBLISH != 'true'
 
       - name: Sign images
+        if: env.SKIP_PUBLISH != 'true'
         run: echo "${{ steps.meta.outputs.tags }}" | xargs -I {} cosign sign --yes {}@${{ steps.build.outputs.digest }}

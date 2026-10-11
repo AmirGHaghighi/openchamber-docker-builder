@@ -13,7 +13,7 @@ docker run -d --name openchamber -p 3000:3000 \
   -e OPENCHAMBER_UI_PASSWORD="$(openssl rand -base64 24)" \
   -v openchamber-home:/home/openchamber \
   -v ./workspaces:/home/openchamber/workspaces \
-  ghcr.io/amirghaghighi/openchamber:2.2.0
+  ghcr.io/amirghaghighi/openchamber:2.2.0-2.0.25-0.0.1
 ```
 
 Open http://localhost:3000 and sign in with the password. Health: `/health`.
@@ -83,14 +83,30 @@ Port/host can be overridden per run: `docker run ... <image> serve --foreground 
 
 ## Versions
 
-Pinned via build args (defaults: `OPENCHAMBER_VERSION=2.2.0`, `OPENCODE_VERSION=2.0.25`):
+Pinned in `versions.env` (single source of truth): `OPENCHAMBER_VERSION`,
+`OPENCODE_VERSION`, `NODE_IMAGE_DIGEST`, `BUILDER_VERSION`.
+
+- Upstream bump: edit the upstream pin(s) only.
+- Builder/infra change: bump `BUILDER_VERSION` only.
+- Any `versions.env` value change on `main` = release. Comment/whitespace-only
+  edits are skipped by the value-diff gate.
 
 ```bash
-docker build --build-arg OPENCHAMBER_VERSION=2.3.0 --build-arg OPENCODE_VERSION=2.0.26 -t openchamber:dev .
+set -a; . ./versions.env; set +a
+docker build \
+  --build-arg NODE_IMAGE_DIGEST="$NODE_IMAGE_DIGEST" \
+  --build-arg OPENCHAMBER_VERSION="$OPENCHAMBER_VERSION" \
+  --build-arg OPENCODE_VERSION="$OPENCODE_VERSION" \
+  --build-arg BUILDER_VERSION="$BUILDER_VERSION" \
+  -t openchamber:dev .
 ```
 
-To release a new upstream version: bump the defaults in `Dockerfile` and the
-`workflow_dispatch` defaults, push to `main`. CI tags `latest`,
-`<openchamber-version>`, `<openchamber-version>-<short-sha>`, all cosign-signed
-with SBOM + provenance attestation. Weekly cron rebuilds the same versions on
-a fresh base image.
+Published tags: `latest`, `<openchamber>`, `<openchamber>-<opencode>`,
+`<openchamber>-<opencode>-<builder>` (e.g. `2.2.0-2.0.25-0.0.1`). Only the
+4-part tag is immutable — the rest float and get overwritten on later
+releases, so pin the 4-part tag. All tags cosign-signed with SBOM +
+provenance attestation.
+
+Infra-only fixes (Dockerfile, entrypoint, workflows) get a no-push
+validation build via `docker-validate`. A weekly `weekly-respin` workflow
+opens a builder-rev bump PR to refresh the apt layer; merging it publishes.

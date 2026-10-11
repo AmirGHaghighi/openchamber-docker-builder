@@ -2,11 +2,20 @@
 # Clean-room build. Never FROM a third-party openchamber image.
 # Sources: Node base image + npm registry (@openchamber/web, @opencode/cli) only.
 # Update NODE_IMAGE_DIGEST explicitly when upgrading the base.
-ARG NODE_IMAGE_DIGEST=sha256:d6aa754f16b3197301076f047b5def2f02ea1dbbc2ca920407d46d7ec7f87b20
+ARG NODE_IMAGE_DIGEST
 FROM node:24-bookworm-slim@${NODE_IMAGE_DIGEST}
 
-ARG OPENCHAMBER_VERSION=2.2.0
-ARG OPENCODE_VERSION=2.0.25
+ARG OPENCHAMBER_VERSION
+ARG OPENCODE_VERSION
+ARG BUILDER_VERSION
+
+# Fail fast: versions.env is the single source of truth, passed as build args.
+RUN test -n "${OPENCHAMBER_VERSION:-}" || (echo "error: OPENCHAMBER_VERSION build arg is empty (source versions.env)" >&2; exit 1); \
+    test -n "${OPENCODE_VERSION:-}" || (echo "error: OPENCODE_VERSION build arg is empty (source versions.env)" >&2; exit 1); \
+    test -n "${BUILDER_VERSION:-}" || (echo "error: BUILDER_VERSION build arg is empty (source versions.env)" >&2; exit 1)
+
+LABEL org.opencontainers.image.version=${OPENCHAMBER_VERSION} \
+      builder.version=${BUILDER_VERSION}
 
 ENV NODE_ENV=production \
     LANG=C.UTF-8 \

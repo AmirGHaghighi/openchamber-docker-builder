@@ -1,0 +1,51 @@
+name: docker-validate
+
+# Dockerfile-only fixes get a build signal without publishing.
+# Release flow still requires a versions.env change (see docker-publish).
+on:
+  push:
+    branches: [main]
+    paths:
+      - Dockerfile
+      - docker-entrypoint.sh
+      - .github/workflows/docker-validate.yml
+  pull_request:
+    paths:
+      - Dockerfile
+      - docker-entrypoint.sh
+      - versions.env
+      - .github/workflows/docker-validate.yml
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Load versions.env
+        run: |
+          set -eu
+          for key in OPENCHAMBER_VERSION OPENCODE_VERSION NODE_IMAGE_DIGEST BUILDER_VERSION; do
+            value="$(sed -e 's/#.*//' versions.env | grep -E "^[[:space:]]*${key}[[:space:]]*=" | sed -e 's/^[^=]*=//' -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+            if [ -z "$value" ]; then
+              echo "error: $key missing or empty in versions.env" >&2
+              exit 1
+            fi
+            echo "$key=$value" >> "$GITHUB_ENV"
+          done
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build (no push)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64
+          push: false
+          build-args: |
+            NODE_IMAGE_DIGEST=${{ env.NODE_IMAGE_DIGEST }}
+            OPENCHAMBER_VERSION=${{ env.OPENCHAMBER_VERSION }}
+            OPENCODE_VERSION=${{ env.OPENCODE_VERSION }}
+            BUILDER_VERSION=${{ env.BUILDER_VERSION }}
