@@ -2,7 +2,7 @@ name: openchamber
 
 services:
   openchamber:
-    image: ghcr.io/amirghaghighi/openchamber:2.2.0
+    image: ghcr.io/amirghaghighi/openchamber:${IMAGE_TAG:-2.2.0}
     container_name: openchamber
     ports:
       - "3000:3000"
