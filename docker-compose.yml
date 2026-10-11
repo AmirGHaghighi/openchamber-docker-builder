@@ -20,7 +20,8 @@ services:
       # Set this before starting, for example:
       #   OPENCHAMBER_UI_PASSWORD="$(openssl rand -base64 24)" docker compose up -d
       OPENCHAMBER_UI_PASSWORD: ${OPENCHAMBER_UI_PASSWORD:?Set OPENCHAMBER_UI_PASSWORD before exposing OpenChamber through Docker}
-    # OPENCHAMBER_LAN_URL: http://192.168.1.20:3000  # LAN address pairing links offer
+      # Optional: LAN address pairing links offer (empty = upstream default).
+      OPENCHAMBER_LAN_URL: ${OPENCHAMBER_LAN_URL:-}
     # OPENCODE_HOST: http://host.docker.internal:4096  # use external OpenCode server
     # OPENCODE_SKIP_START: true  # with OPENCODE_HOST, skip managed OpenCode
     restart: unless-stopped
