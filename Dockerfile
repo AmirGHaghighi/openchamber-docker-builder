@@ -57,4 +57,7 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
   CMD curl -fsS http://127.0.0.1:${OPENCHAMBER_PORT:-3000}/health || exit 1
 
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
-CMD ["serve", "--foreground", "--host", "0.0.0.0", "--port", "3000"]
+# Keep flags out of CMD: entrypoint applies OPENCHAMBER_HOST (default 0.0.0.0)
+# and OPENCHAMBER_PORT (translated to --port) from the environment.
+# Explicit flags in a compose `command:` override still win.
+CMD ["serve", "--foreground"]

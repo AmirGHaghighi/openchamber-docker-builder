@@ -27,6 +27,9 @@ services:
       # Entrypoint env (repo-local): translated to --port by docker-entrypoint.sh.
       # Empty = image CMD default (3000).
       OPENCHAMBER_PORT: ${OPENCHAMBER_PORT:-}
+      # Upstream env: bind address (bare IP, no scheme). Empty = entrypoint
+      # default 0.0.0.0 (upstream default 127.0.0.1 would block mapped ports).
+      OPENCHAMBER_HOST: ${OPENCHAMBER_HOST:-}
     # OPENCODE_HOST: http://host.docker.internal:4096  # use external OpenCode server
     # OPENCODE_SKIP_START: true  # with OPENCODE_HOST, skip managed OpenCode
     restart: unless-stopped

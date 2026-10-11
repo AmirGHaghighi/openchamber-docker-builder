@@ -17,14 +17,28 @@ case "${1:-serve}" in
       echo "[entrypoint] Example: OPENCHAMBER_UI_PASSWORD=\"\$(openssl rand -base64 24)\" docker compose up -d" >&2
       exit 1
     fi
-    # Entrypoint env (repo-local): upstream has no port env, so translate
-    # OPENCHAMBER_PORT to --port here. Drop when upstream documents it.
+    # Entrypoint envs: upstream has no port env, so OPENCHAMBER_PORT is
+    # translated to --port here (drop when upstream documents it).
+    # OPENCHAMBER_HOST is read by upstream itself; the entrypoint only
+    # supplies the Docker default (0.0.0.0) when neither flag nor env set it.
     has_port_flag=false
+    has_host_flag=false
     for arg in "$@"; do
       case "$arg" in
-        --port|--port=*|-p) has_port_flag=true; break ;;
+        --port|--port=*|-p) has_port_flag=true ;;
+        --host|--host=*) has_host_flag=true ;;
       esac
     done
+    if [ "$has_host_flag" = true ]; then
+      if [ -n "${OPENCHAMBER_HOST:-}" ]; then
+        echo "[entrypoint] warning: --host flag wins, ignoring OPENCHAMBER_HOST" >&2
+      fi
+    elif [ -z "${OPENCHAMBER_HOST:-}" ]; then
+      # Upstream defaults to 127.0.0.1, which would make mapped ports
+      # unreachable from outside the container.
+      OPENCHAMBER_HOST=0.0.0.0
+      export OPENCHAMBER_HOST
+    fi
     if [ "$has_port_flag" = true ]; then
       if [ -n "${OPENCHAMBER_PORT:-}" ]; then
         echo "[entrypoint] warning: --port flag wins, ignoring OPENCHAMBER_PORT" >&2
