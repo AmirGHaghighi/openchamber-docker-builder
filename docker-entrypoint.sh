@@ -62,6 +62,24 @@ esac
 SSH_DIR="${HOME_DIR}/.ssh"
 SSH_KEY="${SSH_DIR}/id_ed25519"
 
+# Non-root Docker socket access: host /var/run/docker.sock is usually
+# root:docker 660, blocking openchamber (uid 1000). DOCKER_GID carries the
+# host socket GID (stat -c %g /var/run/docker.sock); empty skips.
+if [ "$(id -u)" = "0" ] && [ -n "${DOCKER_GID:-}" ]; then
+  case "$DOCKER_GID" in
+    ''|*[!0-9]*)
+      echo "[entrypoint] error: DOCKER_GID must be numeric, got '${DOCKER_GID}'." >&2
+      exit 1
+      ;;
+  esac
+  if getent group docker >/dev/null 2>&1; then
+    groupmod -g "$DOCKER_GID" docker 2>/dev/null || true
+  else
+    groupadd -g "$DOCKER_GID" docker 2>/dev/null || true
+  fi
+  usermod -aG docker openchamber 2>/dev/null || true
+fi
+
 # Named volumes mount root-owned on first use. Take ownership so the
 # non-root server can write config, state, keys, and workspaces.
 if [ "$(id -u)" = "0" ]; then

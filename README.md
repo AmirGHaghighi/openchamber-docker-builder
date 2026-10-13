@@ -73,6 +73,23 @@ up with plain file copy.
 
 Port/host can be overridden per run: `docker run ... <image> serve --foreground --host 0.0.0.0 --port 8080`.
 
+## Docker socket (opt-in)
+
+The image ships `docker` CLI (pinned via `DOCKER_CLI_VERSION` in
+`versions.env`). Without a socket mount it cannot reach any daemon.
+
+To let agents run ephemeral test containers (e.g.
+`docker run --rm python:3.12-slim python -m pytest`):
+
+1. Uncomment the `/var/run/docker.sock` mount in `docker-compose.yml`.
+2. Set `DOCKER_GID` to the host socket GID: `stat -c %g /var/run/docker.sock`.
+
+> [!WARNING]
+> Mounting `/var/run/docker.sock` gives the container full control over
+> the host Docker daemon: any process with socket write access can start
+> privileged containers, mount any host path, and effectively gain root
+> on the host. Only enable on a trusted single-user host.
+
 ## Volumes
 
 | Volume | Mount | Stored | Safe to delete? | Why back up? |
@@ -87,7 +104,7 @@ Port/host can be overridden per run: `docker run ... <image> serve --foreground 
 ## Versions
 
 Pinned in `versions.env` (single source of truth): `OPENCHAMBER_VERSION`,
-`OPENCODE_VERSION`, `GH_VERSION`, `NODE_IMAGE_DIGEST`, `BUILDER_VERSION`. The
+`OPENCODE_VERSION`, `GH_VERSION`, `DOCKER_CLI_VERSION`, `NODE_IMAGE_DIGEST`, `BUILDER_VERSION`. The
 image is amd64-only; the GitHub CLI apt source is pinned to `arch=amd64`. No
 arm64 build until a later change restores it.
 
