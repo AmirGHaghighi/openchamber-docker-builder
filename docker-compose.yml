@@ -37,9 +37,6 @@ services:
       # GitHub CLI auth (runtime only, never baked into the image).
       # Warning: GH_TOKEN is globally available to every gh call in the container.
       GH_TOKEN: ${GH_TOKEN:-}
-      # Host docker socket GID for the entrypoint group fix (stat -c %g
-      # /var/run/docker.sock). Empty skips. Only with socket mount above.
-      # DOCKER_GID: ${DOCKER_GID:-}
     # OPENCODE_HOST: http://host.docker.internal:4096  # use external OpenCode server
     # OPENCODE_SKIP_START: true  # with OPENCODE_HOST, skip managed OpenCode
     restart: unless-stopped

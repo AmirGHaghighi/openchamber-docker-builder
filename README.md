@@ -79,16 +79,21 @@ The image ships `docker` CLI (pinned via `DOCKER_CLI_VERSION` in
 `versions.env`). Without a socket mount it cannot reach any daemon.
 
 To let agents run ephemeral test containers (e.g.
-`docker run --rm python:3.12-slim python -m pytest`):
+`docker run --rm python:3.12-slim python -m pytest`), uncomment the
+`/var/run/docker.sock` mount in `docker-compose.yml`. No GID setup needed:
+the server runs as root.
 
-1. Uncomment the `/var/run/docker.sock` mount in `docker-compose.yml`.
-2. Set `DOCKER_GID` to the host socket GID: `stat -c %g /var/run/docker.sock`.
+## Security model
+
+The server runs as root inside the container so agents can install
+packages at runtime (`uv`, `gitleaks`) without image bloat.
 
 > [!WARNING]
-> Mounting `/var/run/docker.sock` gives the container full control over
-> the host Docker daemon: any process with socket write access can start
-> privileged containers, mount any host path, and effectively gain root
-> on the host. Only enable on a trusted single-user host.
+> Root in container + `/var/run/docker.sock` mount = root on the host.
+> Any process with socket write access can start privileged containers,
+> mount any host path, and take over the host. Only enable the socket
+> mount on a trusted single-user host, keep `OPENCHAMBER_UI_PASSWORD`
+> strong, and never expose the UI to untrusted networks while mounted.
 
 ## Volumes
 

@@ -33,7 +33,6 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
       ca-certificates \
       curl \
       git \
-      gosu \
       openssh-client \
       python3 \
     && rm -rf /var/cache/apt/archives/* \
@@ -53,25 +52,18 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
       > /etc/apt/sources.list.d/docker.list \
     && apt-get update && apt-get install -y --no-install-recommends "docker-ce-cli=5:${DOCKER_CLI_VERSION}*" \
     && rm -rf /var/cache/apt/archives/* \
-    # Replace the base image's 'node' user (UID/GID 1000) with 'openchamber'
-    # so mounted volumes with 1000:1000 ownership work correctly.
-    && (userdel -r node || true) \
-    && (getent group node && groupdel node || true) \
-    && groupadd -g 1000 openchamber \
-    && useradd -u 1000 -g 1000 -m -s /bin/bash openchamber \
-    && mkdir -p /home/openchamber/.npm-global /home/openchamber/workspaces \
-    && chown -R openchamber:openchamber /home/openchamber
+    && mkdir -p /home/openchamber/.npm-global /home/openchamber/workspaces
 
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod 755 /usr/local/bin/docker-entrypoint.sh
 
-# Stay root: entrypoint fixes volume ownership, then drops to openchamber.
+# Run as root: agents install packages (uv, gitleaks) at runtime.
 WORKDIR /home/openchamber
 
-RUN --mount=type=cache,target=/home/openchamber/.npm,uid=1000,gid=1000 \
-    gosu openchamber npm install -g "@openchamber/web@${OPENCHAMBER_VERSION}" "@opencode/cli@${OPENCODE_VERSION}" \
-    && gosu openchamber openchamber --version \
-    && gosu openchamber opencode --version \
+RUN --mount=type=cache,target=/home/openchamber/.npm \
+    npm install -g "@openchamber/web@${OPENCHAMBER_VERSION}" "@opencode/cli@${OPENCODE_VERSION}" \
+    && openchamber --version \
+    && opencode --version \
     && gh --version \
     && docker --version
 

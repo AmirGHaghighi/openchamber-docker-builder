@@ -62,42 +62,6 @@ esac
 SSH_DIR="${HOME_DIR}/.ssh"
 SSH_KEY="${SSH_DIR}/id_ed25519"
 
-# Non-root Docker socket access: host /var/run/docker.sock is usually
-# root:docker 660, blocking openchamber (uid 1000). DOCKER_GID carries the
-# host socket GID (stat -c %g /var/run/docker.sock); empty skips.
-if [ "$(id -u)" = "0" ] && [ -n "${DOCKER_GID:-}" ]; then
-  case "$DOCKER_GID" in
-    ''|*[!0-9]*)
-      echo "[entrypoint] error: DOCKER_GID must be numeric, got '${DOCKER_GID}'." >&2
-      exit 1
-      ;;
-  esac
-  if getent group docker >/dev/null 2>&1; then
-    groupmod -g "$DOCKER_GID" docker 2>/dev/null || true
-  else
-    groupadd -g "$DOCKER_GID" docker 2>/dev/null || true
-  fi
-  usermod -aG docker openchamber 2>/dev/null || true
-fi
-
-# Named volumes mount root-owned on first use. Take ownership so the
-# non-root server can write config, state, keys, and workspaces.
-if [ "$(id -u)" = "0" ]; then
-  chown -R openchamber:openchamber \
-    "${HOME_DIR}/.config" \
-    "${HOME_DIR}/.local" \
-    "${HOME_DIR}/.npm-global" \
-    "${HOME_DIR}/.ssh" \
-    "${HOME_DIR}/workspaces" 2>/dev/null || true
-  mkdir -p "${HOME_DIR}/.config" "${HOME_DIR}/.local" "${SSH_DIR}" "${HOME_DIR}/workspaces"
-  chown -R openchamber:openchamber \
-    "${HOME_DIR}/.config" \
-    "${HOME_DIR}/.local" \
-    "${HOME_DIR}/.npm-global" \
-    "${SSH_DIR}" \
-    "${HOME_DIR}/workspaces" 2>/dev/null || true
-fi
-
 mkdir -p "${SSH_DIR}" "${HOME_DIR}/workspaces"
 if [ ! -f "${SSH_KEY}" ]; then
   echo "[entrypoint] generating SSH key..."
@@ -105,21 +69,5 @@ if [ ! -f "${SSH_KEY}" ]; then
     || echo "[entrypoint] warning: SSH key generation failed, continuing" >&2
 fi
 
-# Drop privileges: the server itself never runs as root.
-# The init steps above briefly run as root (standard gosu pattern) only to
-# fix volume ownership; execution below is always as openchamber.
-if [ "$(id -u)" = "0" ]; then
-  if ! command -v gosu >/dev/null 2>&1; then
-    echo "[entrypoint] error: gosu missing, refusing to run as root" >&2
-    exit 1
-  fi
-  exec gosu openchamber openchamber "$@"
-fi
-
-# Final guard: if we are still root here, refuse instead of running the server.
-if [ "$(id -u)" = "0" ]; then
-  echo "[entrypoint] error: refusing to run server as root" >&2
-  exit 1
-fi
-
+# Run as root: agents install packages (uv, gitleaks) at runtime.
 exec openchamber "$@"
