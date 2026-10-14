@@ -45,10 +45,12 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     && apt-get update && apt-get install -y --no-install-recommends "gh=${GH_VERSION}*" \
     && rm -rf /var/cache/apt/archives/* \
     # Docker CLI apt repo (amd64-only ceiling, same as gh above).
+    # Docker serves an ASCII-armored key: save as .asc per upstream docs
+    # (a .gpg path makes apt reject the repo with NO_PUBKEY).
     # ponytail: TOFU keyring download; pin keyring hash when supply-chain requires it.
-    && curl -fsSL -o /usr/share/keyrings/docker-archive-keyring.gpg https://download.docker.com/linux/debian/gpg \
-    && chmod 644 /usr/share/keyrings/docker-archive-keyring.gpg \
-    && echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian bookworm stable" \
+    && curl -fsSL -o /usr/share/keyrings/docker-archive-keyring.asc https://download.docker.com/linux/debian/gpg \
+    && chmod 644 /usr/share/keyrings/docker-archive-keyring.asc \
+    && echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.asc] https://download.docker.com/linux/debian bookworm stable" \
       > /etc/apt/sources.list.d/docker.list \
     && apt-get update && apt-get install -y --no-install-recommends "docker-ce-cli=5:${DOCKER_CLI_VERSION}*" \
     && rm -rf /var/cache/apt/archives/* \
