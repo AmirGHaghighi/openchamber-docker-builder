@@ -8,6 +8,7 @@ on:
     paths:
       - Dockerfile
       - docker-entrypoint.sh
+      - .github/dependabot.yml
       - .github/workflows/docker-validate.yml
       - .github/workflows/upstream-check.yml
   pull_request:
@@ -15,6 +16,7 @@ on:
       - Dockerfile
       - docker-entrypoint.sh
       - versions.env
+      - .github/dependabot.yml
       - .github/workflows/docker-validate.yml
       - .github/workflows/upstream-check.yml
 

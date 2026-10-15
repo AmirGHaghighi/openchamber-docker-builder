@@ -136,8 +136,11 @@ releases, so pin the 4-part tag. All tags cosign-signed with SBOM +
 provenance attestation.
 
 Infra-only fixes (Dockerfile, entrypoint, workflows) get a no-push
-validation build via `docker-validate`. A weekly `upstream-check` workflow
-queries npm for new `@openchamber/web` / `@opencode/cli` releases and GitHub
-for new `cli/cli` releases, and opens
-a bump PR only when a pin actually changed; merging it publishes. Quiet
-weeks produce no PR.
+validation build via `docker-validate`. A daily `upstream-check` workflow
+queries npm for new `@openchamber/web` / `@opencode/cli` releases, GitHub
+for new `cli/cli` releases, Docker Hub for a new `node:24-bookworm-slim`
+digest, and download.docker.com for a new `docker-ce-cli` release, and
+opens a bump PR only when a pin actually changed; merging it publishes.
+Quiet days produce no PR. Dependabot covers GitHub Action pins only
+(`github-actions` ecosystem, weekly grouped); image pins stay on
+`upstream-check` since Dependabot cannot parse `versions.env`.

@@ -1,0 +1,12 @@
+version: 2
+updates:
+  # Workflow/action pins only. Image pins in versions.env are handled
+  # by the daily upstream-check workflow, which Dependabot cannot parse.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      actions:
+        patterns:
+          - "*"
