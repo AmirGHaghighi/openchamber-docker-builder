@@ -19,7 +19,7 @@ jobs:
       contents: write
       pull-requests: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Check upstream releases
         run: |
@@ -104,7 +104,7 @@ jobs:
 
       - name: Open upstream bump PR
         if: env.UPSTREAM_CHANGED == 'true'
-        uses: peter-evans/create-pull-request@v7
+        uses: peter-evans/create-pull-request@v8
         with:
           branch: upstream-${{ env.LATEST_OC }}-${{ env.LATEST_CODE }}-gh${{ env.LATEST_GH }}-docker${{ env.LATEST_DOCKER_CLI }}-node${{ env.LATEST_NODE_SHORT }}
           title: "chore: bump upstream (openchamber ${{ env.LATEST_OC }}, opencode ${{ env.LATEST_CODE }}, gh ${{ env.LATEST_GH }}, docker-cli ${{ env.LATEST_DOCKER_CLI }}, node ${{ env.LATEST_NODE_SHORT }})"
