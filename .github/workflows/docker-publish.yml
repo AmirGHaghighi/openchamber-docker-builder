@@ -21,7 +21,7 @@ jobs:
       packages: write
       id-token: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           # Value-diff gate fetches the pre-push commit on demand below.
           fetch-depth: 1
@@ -61,9 +61,9 @@ jobs:
         if: env.SKIP_PUBLISH == 'true'
         run: echo "No versions.env value change; nothing to publish."
 
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@v4
         if: env.SKIP_PUBLISH != 'true'
-      - uses: docker/login-action@v3
+      - uses: docker/login-action@v4
         if: env.SKIP_PUBLISH != 'true'
         with:
           registry: ${{ env.REGISTRY }}
@@ -72,7 +72,7 @@ jobs:
 
       - id: meta
         if: env.SKIP_PUBLISH != 'true'
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           # Only the 4-part tag is immutable. The rest float and get
@@ -86,7 +86,7 @@ jobs:
       - id: build
         if: env.SKIP_PUBLISH != 'true'
         # ponytail: amd64-only ceiling; restore arm64 via setup-qemu-action + platforms linux/amd64,linux/arm64.
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           platforms: linux/amd64
