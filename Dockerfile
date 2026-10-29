@@ -9,6 +9,7 @@ ARG OPENCHAMBER_VERSION
 ARG OPENCODE_VERSION
 ARG GH_VERSION
 ARG DOCKER_CLI_VERSION
+ARG DOCKER_COMPOSE_VERSION
 ARG BUILDER_VERSION
 
 # Fail fast: versions.env is the single source of truth, passed as build args.
@@ -16,6 +17,7 @@ RUN test -n "${OPENCHAMBER_VERSION:-}" || (echo "error: OPENCHAMBER_VERSION buil
     test -n "${OPENCODE_VERSION:-}" || (echo "error: OPENCODE_VERSION build arg is empty (source versions.env)" >&2; exit 1); \
     test -n "${GH_VERSION:-}" || (echo "error: GH_VERSION build arg is empty (source versions.env)" >&2; exit 1); \
     test -n "${DOCKER_CLI_VERSION:-}" || (echo "error: DOCKER_CLI_VERSION build arg is empty (source versions.env)" >&2; exit 1); \
+    test -n "${DOCKER_COMPOSE_VERSION:-}" || (echo "error: DOCKER_COMPOSE_VERSION build arg is empty (source versions.env)" >&2; exit 1); \
     test -n "${BUILDER_VERSION:-}" || (echo "error: BUILDER_VERSION build arg is empty (source versions.env)" >&2; exit 1)
 
 LABEL org.opencontainers.image.version=${OPENCHAMBER_VERSION} \
@@ -52,7 +54,9 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     && chmod 644 /usr/share/keyrings/docker-archive-keyring.asc \
     && echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.asc] https://download.docker.com/linux/debian bookworm stable" \
       > /etc/apt/sources.list.d/docker.list \
-    && apt-get update && apt-get install -y --no-install-recommends "docker-ce-cli=5:${DOCKER_CLI_VERSION}*" \
+    && apt-get update && apt-get install -y --no-install-recommends \
+      "docker-ce-cli=5:${DOCKER_CLI_VERSION}*" \
+      "docker-compose-plugin=${DOCKER_COMPOSE_VERSION}*" \
     && rm -rf /var/cache/apt/archives/* \
     && mkdir -p /home/openchamber/.npm-global /home/openchamber/workspaces
 
@@ -67,7 +71,8 @@ RUN --mount=type=cache,target=/home/openchamber/.npm \
     && openchamber --version \
     && opencode --version \
     && gh --version \
-    && docker --version
+    && docker --version \
+    && docker compose version
 
 EXPOSE 3000
 

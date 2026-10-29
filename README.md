@@ -76,7 +76,9 @@ Port/host can be overridden per run: `docker run ... <image> serve --foreground 
 ## Docker socket (opt-in)
 
 The image ships `docker` CLI (pinned via `DOCKER_CLI_VERSION` in
-`versions.env`). Without a socket mount it cannot reach any daemon.
+`versions.env`). The `docker compose` V2 plugin is also installed
+(pinned via `DOCKER_COMPOSE_VERSION`). Without a socket mount neither
+can reach any daemon.
 
 To let agents run ephemeral test containers (e.g.
 `docker run --rm python:3.12-slim python -m pytest`), uncomment the
@@ -109,7 +111,7 @@ packages at runtime (`uv`, `gitleaks`) without image bloat.
 ## Versions
 
 Pinned in `versions.env` (single source of truth): `OPENCHAMBER_VERSION`,
-`OPENCODE_VERSION`, `GH_VERSION`, `DOCKER_CLI_VERSION`, `NODE_IMAGE_DIGEST`, `BUILDER_VERSION`. The
+`OPENCODE_VERSION`, `GH_VERSION`, `DOCKER_CLI_VERSION`, `DOCKER_COMPOSE_VERSION`, `NODE_IMAGE_DIGEST`, `BUILDER_VERSION`. The
 image is amd64-only; the GitHub CLI apt source is pinned to `arch=amd64`. No
 arm64 build until a later change restores it.
 
