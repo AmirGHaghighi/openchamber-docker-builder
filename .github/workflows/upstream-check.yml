@@ -35,6 +35,7 @@ jobs:
           CURRENT_NODE="$(current NODE_IMAGE_DIGEST)"
           CURRENT_DOCKER_CLI="$(current DOCKER_CLI_VERSION)"
           CURRENT_DOCKER_COMPOSE="$(current DOCKER_COMPOSE_VERSION)"
+          CURRENT_BUILDER="$(current BUILDER_VERSION)"
           LATEST_OC="$(curl -fsSL https://registry.npmjs.org/@openchamber%2Fweb/latest | jq -r .version)"
           LATEST_CODE="$(curl -fsSL https://registry.npmjs.org/@opencode%2Fcli/latest | jq -r .version)"
           LATEST_GH="$(curl -fsSL https://api.github.com/repos/cli/cli/releases/latest | jq -r .tag_name | sed 's/^v//')"
@@ -102,13 +103,20 @@ jobs:
             sed -i -E "s/^(DOCKER_COMPOSE_VERSION[[:space:]]*=[[:space:]]*).*/\1${LATEST_DOCKER_COMPOSE}/" versions.env
             CHANGED=true
           fi
-          echo "LATEST_OC=${LATEST_OC}" >> "$GITHUB_ENV"
-          echo "LATEST_CODE=${LATEST_CODE}" >> "$GITHUB_ENV"
-          echo "LATEST_GH=${LATEST_GH}" >> "$GITHUB_ENV"
-          # Branch names cannot contain ':' — use the 12-char digest prefix.
-          NODE_SHORT="$(echo "$LATEST_NODE" | sed 's/^sha256://' | cut -c1-12)"
-          echo "LATEST_NODE_SHORT=${NODE_SHORT}" >> "$GITHUB_ENV"
-          echo "LATEST_DOCKER_CLI=${LATEST_DOCKER_CLI}" >> "$GITHUB_ENV"
+          # PR report: title/branch list changed pins only; branch is a full
+          # fingerprint of all six pins (compose included) so compose-only
+          # bumps never collide with a still-open PR branch.
+          . ./scripts/upstream-report.sh
+          RUN_TIMESTAMP="$(date -u '+%Y-%m-%d %H:%M UTC')"
+          PR_TITLE=""
+          PR_BRANCH=""
+          if [ "$CHANGED" = true ]; then
+            PR_TITLE="$(build_pr_title)"
+            PR_BRANCH="$(build_branch_name)"
+            build_pr_body > /tmp/pr-body.md
+          fi
+          echo "PR_TITLE=${PR_TITLE}" >> "$GITHUB_ENV"
+          echo "PR_BRANCH=${PR_BRANCH}" >> "$GITHUB_ENV"
           echo "UPSTREAM_CHANGED=${CHANGED}" >> "$GITHUB_ENV"
           if [ "$CHANGED" = true ]; then
             echo "Upstream changed — versions.env updated."
@@ -120,7 +128,7 @@ jobs:
         if: env.UPSTREAM_CHANGED == 'true'
         uses: peter-evans/create-pull-request@v8
         with:
-          branch: upstream-${{ env.LATEST_OC }}-${{ env.LATEST_CODE }}-gh${{ env.LATEST_GH }}-docker${{ env.LATEST_DOCKER_CLI }}-node${{ env.LATEST_NODE_SHORT }}
-          title: "chore: bump upstream (openchamber ${{ env.LATEST_OC }}, opencode ${{ env.LATEST_CODE }}, gh ${{ env.LATEST_GH }}, docker-cli ${{ env.LATEST_DOCKER_CLI }}, node ${{ env.LATEST_NODE_SHORT }})"
-          body: "New upstream release(s) detected on npm / GitHub / Docker Hub / download.docker.com. Merge to publish; close to skip."
-          commit-message: "chore: bump upstream (openchamber ${{ env.LATEST_OC }}, opencode ${{ env.LATEST_CODE }}, gh ${{ env.LATEST_GH }}, docker-cli ${{ env.LATEST_DOCKER_CLI }}, node ${{ env.LATEST_NODE_SHORT }})"
+          branch: ${{ env.PR_BRANCH }}
+          title: ${{ env.PR_TITLE }}
+          body-file: /tmp/pr-body.md
+          commit-message: ${{ env.PR_TITLE }}
