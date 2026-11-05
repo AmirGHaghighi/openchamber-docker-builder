@@ -115,6 +115,9 @@ WF="../.github/workflows/upstream-check.yml"
 assert_contains "E: workflow sets BUILDER_VERSION for the report" \
   "$(grep -o 'BUILDER_VERSION="\$(current BUILDER_VERSION)"' "$WF" | head -1)" \
   'BUILDER_VERSION="$(current BUILDER_VERSION)"'
+assert_contains "E: open-PR step uses the action's body-path input" \
+  "$(grep -o 'body-path: /tmp/pr-body.md' "$WF" | head -1)" \
+  'body-path: /tmp/pr-body.md'
 
 if [ "$FAILURES" -ne 0 ]; then
   echo "FAILURES" >&2
