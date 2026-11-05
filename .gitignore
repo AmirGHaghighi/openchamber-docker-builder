@@ -1,3 +1,4 @@
 .env
 workspaces/
 data/
+.superpowers/
