@@ -35,7 +35,7 @@ jobs:
           CURRENT_NODE="$(current NODE_IMAGE_DIGEST)"
           CURRENT_DOCKER_CLI="$(current DOCKER_CLI_VERSION)"
           CURRENT_DOCKER_COMPOSE="$(current DOCKER_COMPOSE_VERSION)"
-          CURRENT_BUILDER="$(current BUILDER_VERSION)"
+          BUILDER_VERSION="$(current BUILDER_VERSION)"
           LATEST_OC="$(curl -fsSL https://registry.npmjs.org/@openchamber%2Fweb/latest | jq -r .version)"
           LATEST_CODE="$(curl -fsSL https://registry.npmjs.org/@opencode%2Fcli/latest | jq -r .version)"
           LATEST_GH="$(curl -fsSL https://api.github.com/repos/cli/cli/releases/latest | jq -r .tag_name | sed 's/^v//')"

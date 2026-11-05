@@ -108,6 +108,14 @@ unset RUN_TIMESTAMP
 body="$(build_pr_body)"
 assert_regex "D: generated run line" "$body" '^Ran [0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2} UTC'
 
+# ---------------------------------------------------------------- fixture E
+# Workflow contract: the check step must provide every env var the script requires.
+# (The BUILDER_VERSION export was missing once — see ledger ruling.)
+WF="../.github/workflows/upstream-check.yml"
+assert_contains "E: workflow sets BUILDER_VERSION for the report" \
+  "$(grep -o 'BUILDER_VERSION="\$(current BUILDER_VERSION)"' "$WF" | head -1)" \
+  'BUILDER_VERSION="$(current BUILDER_VERSION)"'
+
 if [ "$FAILURES" -ne 0 ]; then
   echo "FAILURES" >&2
   exit 1
